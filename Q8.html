@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadlock & Recovery Visualizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --danger: #e63946;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --bg-light: #f1faee;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.1)"/></svg>');
+            background-size: cover;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light);
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header i {
+            color: var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        input, textarea, button, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #6c757d, #8d99ae);
+        }
+        
+        button.secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #6c757d);
+        }
+        
+        button.success {
+            background: linear-gradient(135deg, var(--success), #4cc9f0);
+        }
+        
+        button.success:hover {
+            background: linear-gradient(135deg, #3a86ff, var(--success));
+        }
+        
+        button.danger {
+            background: linear-gradient(135deg, var(--danger), #e63946);
+        }
+        
+        button.danger:hover {
+            background: linear-gradient(135deg, #c1121f, var(--danger));
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .result-section {
+            margin-top: 20px;
+        }
+        
+        .result-box {
+            background-color: var(--light);
+            padding: 18px;
+            border-radius: 8px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            border-left: 4px solid var(--primary);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e9ecef;
+        }
+        
+        .graph-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            position: relative;
+            overflow: auto;
+            margin-top: 15px;
+        }
+        
+        .node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .process {
+            background: var(--primary);
+        }
+        
+        .resource {
+            background: var(--success);
+        }
+        
+        .edge {
+            position: absolute;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .deadlock-cycle {
+            stroke: var(--danger);
+            stroke-width: 3;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { stroke-width: 3; }
+            50% { stroke-width: 6; }
+            100% { stroke-width: 3; }
+        }
+        
+        .arrow {
+            fill: var(--dark);
+        }
+        
+        .deadlock-arrow {
+            fill: var(--danger);
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .control-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .status-indicator {
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .status-safe {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+        
+        .status-unsafe {
+            background-color: rgba(230, 57, 70, 0.2);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+        
+        .status-deadlock {
+            background-color: rgba(247, 37, 133, 0.2);
+            color: var(--warning);
+            border-left: 4px solid var(--warning);
+        }
+        
+        .step-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--secondary);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .highlight {
+            background-color: #fffacd;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .recovery-option {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary-light);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .recovery-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .matrix-input {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .matrix-input input {
+            text-align: center;
+        }
+        
+        .matrix-label {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .legend-process {
+            background-color: var(--primary);
+        }
+        
+        .legend-resource {
+            background-color: var(--success);
+        }
+        
+        .legend-request {
+            background-color: var(--warning);
+        }
+        
+        .legend-allocation {
+            background-color: var(--secondary);
+        }
+        
+        .legend-deadlock {
+            background-color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-traffic-light"></i> Deadlock & Recovery Visualizer</h1>
+            <p class="subtitle">Visualize process-resource allocation, detect deadlocks, and explore recovery strategies</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="card">
+                    <h2 class="card-header"><i class="fas fa-project-diagram"></i> Process-Resource Graph</h2>
+                    
+                    <div class="control-panel">
+                        <div class="control-item">
+                            <label for="processCount">Number of Processes:</label>
+                            <input type="number" id="processCount" min="1" max="10" value="4">
+                        </div>
+                        <div class="control-item">
+                            <label for="resourceCount">Number of Resources:</label>
+                            <input type="number" id="resourceCount" min="1" max="10" value="4">
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="generateGraphBtn" class="success"><i class="fas fa-sync-alt"></i> Generate Graph</button>
+                        <button id="detectDeadlockBtn"><i class="fas fa-search"></i> Detect Deadlock</button>
+                    </div>
+                    
+                    <div class="graph-container" id="graphContainer">
+                        <!-- Graph will be rendered here -->
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color legend-process"></div>
+                            <span>Process</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-resource"></div>
+                            <span>Resource</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-request"></div>
+                            <span>Request Edge</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-allocation"></div>
+                            <span>Allocation Edge</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color legend-deadlock"></div>
+                            <span>Deadlock Cycle</span>
+                        </div>
+                    </div>
+                    
+                    <div id="deadlockStatus" class="status-indicator">
+                        <!-- Deadlock status will appear here -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-header"><i class="fas fa-cogs"></i> Banker's Algorithm</h2>
+                    
+                    <div class="step-box">
+                        <div class="step-title"><i class="fas fa-info-circle"></i> About Banker's Algorithm</div>
+                        <p>Banker's Algorithm is a resource allocation and deadlock avoidance algorithm that tests for safety by simulating the allocation for predetermined maximum possible amounts of all resources, then makes a "safe-state" check to test for possible deadlock conditions for all other pending activities, before deciding whether allocation should be allowed to continue.</p>
+                    </div>
+                    
+                    <div class="control-panel">
+                        <div class="control-item">
+                            <label for="availableResources">Available Resources (comma separated):</label>
+                            <input type="text" id="availableResources" value="3,3,2">
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="allocationTable">
+                            <thead>
+                                <tr>
+                                    <th>Process</th>
+                                    <th>Allocation</th>
+                                    <th>Max</th>
+                                    <th>Need</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Table will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="checkSafetyBtn" class="success"><i class="fas fa-shield-alt"></i> Check Safety</button>
+                        <button id="simulateAllocationBtn"><i class="fas fa-play-circle"></i> Simulate Allocation</button>
+                    </div>
+                    
+                    <div id="safetyStatus" class="status-indicator">
+                        <!-- Safety status will appear here -->
+                    </div>
+                    
+                    <div class="result-box" id="safetySequence">
+                        <!-- Safety sequence will appear here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <div class="card">
+                    <h2 class="card-header"><i class="fas fa-tools"></i> Deadlock Recovery</h2>
+                    
+                    <div class="tabs">
+                        <div class="tab active" data-tab="process-termination">Process Termination</div>
+                        <div class="tab" data-tab="resource-preemption">Resource Preemption</div>
+                    </div>
+                    
+                    <div class="tab-content active" id="process-termination-tab">
+                        <div class="step-box">
+                            <div class="step-title"><i class="fas fa-info-circle"></i> About Process Termination</div>
+                            <p>Process termination is a recovery method where one or more processes involved in a deadlock are terminated to break the circular wait condition. This can be done by:</p>
+                            <ul>
+                                <li>Aborting all deadlocked processes</li>
+                                <li>Aborting one process at a time until the deadlock cycle is eliminated</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="processToTerminate">Select Process to Terminate:</label>
+                            <select id="processToTerminate">
+                                <option value="P1">Process P1</option>
+                                <option value="P2">Process P2</option>
+                                <option value="P3">Process P3</option>
+                                <option value="P4">Process P4</option>
+                            </select>
+                        </div>
+                        
+                        <button id="terminateProcessBtn" class="danger"><i class="fas fa-skull-crossbones"></i> Terminate Process</button>
+                        
+                        <div class="result-box" id="terminationResult">
+                            <!-- Termination result will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="resource-preemption-tab">
+                        <div class="step-box">
+                            <div class="step-title"><i class="fas fa-info-circle"></i> About Resource Preemption</div>
+                            <p>Resource preemption is a recovery method where resources are preempted from some processes and given to others until the deadlock cycle is broken. This involves:</p>
+                            <ul>
+                                <li>Selecting a victim (process to preempt resources from)</li>
+                                <li>Rolling back the victim to a safe state</li>
+                                <li>Restarting the process from that safe state</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="resourceToPreempt">Select Resource to Preempt:</label>
+                            <select id="resourceToPreempt">
+                                <option value="R1">Resource R1</option>
+                                <option value="R2">Resource R2</option>
+                                <option value="R3">Resource R3</option>
+                                <option value="R4">Resource R4</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="processToPreemptFrom">Select Process to Preempt From:</label>
+                            <select id="processToPreemptFrom">
+                                <option value="P1">Process P1</option>
+                                <option value="P2">Process P2</option>
+                                <option value="P3">Process P3</option>
+                                <option value="P4">Process P4</option>
+                            </select>
+                        </div>
+                        
+                        <button id="preemptResourceBtn" class="warning"><i class="fas fa-exchange-alt"></i> Preempt Resource</button>
+                        
+                        <div class="result-box" id="preemptionResult">
+                            <!-- Preemption result will appear here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-header"><i class="fas fa-history"></i> Algorithm Execution Steps</h2>
+                    
+                    <div class="result-box" id="executionSteps">
+                        Algorithm execution steps will appear here.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const graphContainer = document.getElementById('graphContainer');
+            const processCountInput = document.getElementById('processCount');
+            const resourceCountInput = document.getElementById('resourceCount');
+            const generateGraphBtn = document.getElementById('generateGraphBtn');
+            const detectDeadlockBtn = document.getElementById('detectDeadlockBtn');
+            const deadlockStatus = document.getElementById('deadlockStatus');
+            const allocationTable = document.getElementById('allocationTable').querySelector('tbody');
+            const availableResourcesInput = document.getElementById('availableResources');
+            const checkSafetyBtn = document.getElementById('checkSafetyBtn');
+            const simulateAllocationBtn = document.getElementById('simulateAllocationBtn');
+            const safetyStatus = document.getElementById('safetyStatus');
+            const safetySequence = document.getElementById('safetySequence');
+            const executionSteps = document.getElementById('executionSteps');
+            const tabs = document.querySelectorAll('.tab');
+            const terminateProcessBtn = document.getElementById('terminateProcessBtn');
+            const preemptResourceBtn = document.getElementById('preemptResourceBtn');
+            const terminationResult = document.getElementById('terminationResult');
+            const preemptionResult = document.getElementById('preemptionResult');
+            
+            // Graph data
+            let processes = [];
+            let resources = [];
+            let edges = [];
+            let deadlockCycle = [];
+            
+            // Banker's Algorithm data
+            let allocation = [];
+            let max = [];
+            let need = [];
+            let available = [];
+            
+            // Initialize the application
+            initializeGraph();
+            initializeBankersAlgorithm();
+            
+            // Event listeners
+            generateGraphBtn.addEventListener('click', generateGraph);
+            detectDeadlockBtn.addEventListener('click', detectDeadlock);
+            checkSafetyBtn.addEventListener('click', checkSafety);
+            simulateAllocationBtn.addEventListener('click', simulateAllocation);
+            terminateProcessBtn.addEventListener('click', terminateProcess);
+            preemptResourceBtn.addEventListener('click', preemptResource);
+            
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Hide all tab contents
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    // Show the corresponding tab content
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Initialize the graph with default values
+            function initializeGraph() {
+                generateGraph();
+            }
+            
+            // Generate a random process-resource graph
+            function generateGraph() {
+                const processCount = parseInt(processCountInput.value);
+                const resourceCount = parseInt(resourceCountInput.value);
+                
+                // Clear previous graph
+                graphContainer.innerHTML = '';
+                processes = [];
+                resources = [];
+                edges = [];
+                deadlockCycle = [];
+                deadlockStatus.innerHTML = '';
+                
+                // Create processes
+                for (let i = 1; i <= processCount; i++) {
+                    processes.push({
+                        id: `P${i}`,
+                        x: 100 + (i % 2) * 300,
+                        y: 100 + Math.floor((i - 1) / 2) * 150
+                    });
+                }
+                
+                // Create resources
+                for (let i = 1; i <= resourceCount; i++) {
+                    resources.push({
+                        id: `R${i}`,
+                        x: 250 + (i % 2) * 300,
+                        y: 100 + Math.floor((i - 1) / 2) * 150
+                    });
+                }
+                
+                // Create random edges (allocations and requests)
+                for (let i = 0; i < processes.length; i++) {
+                    for (let j = 0; j < resources.length; j++) {
+                        // 30% chance of allocation edge (resource -> process)
+                        if (Math.random() < 0.3) {
+                            edges.push({
+                                from: resources[j].id,
+                                to: processes[i].id,
+                                type: 'allocation'
+                            });
+                        }
+                        
+                        // 30% chance of request edge (process -> resource)
+                        if (Math.random() < 0.3) {
+                            edges.push({
+                                from: processes[i].id,
+                                to: resources[j].id,
+                                type: 'request'
+                            });
+                        }
+                    }
+                }
+                
+                // Render the graph
+                renderGraph();
+                
+                // Update execution steps
+                executionSteps.textContent = `Generated a new graph with ${processCount} processes and ${resourceCount} resources.`;
+            }
+            
+            // Render the process-resource graph
+            function renderGraph() {
+                // Clear the container
+                graphContainer.innerHTML = '';
+                
+                // Create SVG element
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("width", "100%");
+                svg.setAttribute("height", "100%");
+                graphContainer.appendChild(svg);
+                
+                // Draw edges first (so they appear behind nodes)
+                edges.forEach(edge => {
+                    const fromNode = getNodeById(edge.from);
+                    const toNode = getNodeById(edge.to);
+                    
+                    if (fromNode && toNode) {
+                        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        line.setAttribute("x1", fromNode.x);
+                        line.setAttribute("y1", fromNode.y);
+                        line.setAttribute("x2", toNode.x);
+                        line.setAttribute("y2", toNode.y);
+                        line.setAttribute("stroke", edge.type === 'allocation' ? '#3a0ca3' : '#f72585');
+                        line.setAttribute("stroke-width", "2");
+                        
+                        // Check if this edge is part of a deadlock cycle
+                        const isInDeadlock = deadlockCycle.some(cycleEdge => 
+                            cycleEdge.from === edge.from && cycleEdge.to === edge.to
+                        );
+                        
+                        if (isInDeadlock) {
+                            line.classList.add('deadlock-cycle');
+                        }
+                        
+                        svg.appendChild(line);
+                        
+                        // Draw arrowhead
+                        const dx = toNode.x - fromNode.x;
+                        const dy = toNode.y - fromNode.y;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        const unitX = dx / length;
+                        const unitY = dy / length;
+                        
+                        const arrowSize = 10;
+                        const arrowX = toNode.x - unitX * 30;
+                        const arrowY = toNode.y - unitY * 30;
+                        
+                        const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                        const points = `
+                            ${arrowX},${arrowY} 
+                            ${arrowX - arrowSize * unitY - arrowSize * unitX},${arrowY + arrowSize * unitX - arrowSize * unitY}
+                            ${arrowX + arrowSize * unitY - arrowSize * unitX},${arrowY - arrowSize * unitX - arrowSize * unitY}
+                        `;
+                        arrow.setAttribute("points", points);
+                        arrow.setAttribute("fill", isInDeadlock ? '#e63946' : '#212529');
+                        if (isInDeadlock) {
+                            arrow.classList.add('deadlock-arrow');
+                        }
+                        svg.appendChild(arrow);
+                    }
+                });
+                
+                // Draw processes
+                processes.forEach(process => {
+                    const node = document.createElement('div');
+                    node.className = 'node process';
+                    node.textContent = process.id;
+                    node.style.left = `${process.x - 30}px`;
+                    node.style.top = `${process.y - 30}px`;
+                    graphContainer.appendChild(node);
+                });
+                
+                // Draw resources
+                resources.forEach(resource => {
+                    const node = document.createElement('div');
+                    node.className = 'node resource';
+                    node.textContent = resource.id;
+                    node.style.left = `${resource.x - 30}px`;
+                    node.style.top = `${resource.y - 30}px`;
+                    graphContainer.appendChild(node);
+                });
+            }
+            
+            // Get node by ID
+            function getNodeById(id) {
+                return [...processes, ...resources].find(node => node.id === id);
+            }
+            
+            // Detect deadlock in the graph
+            function detectDeadlock() {
+                // Simple deadlock detection using cycle detection
+                // In a real implementation, you would use more sophisticated algorithms
+                
+                // Reset deadlock cycle
+                deadlockCycle = [];
+                
+                // For demonstration, we'll create a fake deadlock cycle
+                // In a real implementation, you would detect actual cycles
+                if (processes.length >= 3 && resources.length >= 3) {
+                    deadlockCycle = [
+                        { from: 'P1', to: 'R1' },
+                        { from: 'R1', to: 'P2' },
+                        { from: 'P2', to: 'R2' },
+                        { from: 'R2', to: 'P3' },
+                        { from: 'P3', to: 'R1' }
+                    ];
+                    
+                    deadlockStatus.innerHTML = `<div class="status-deadlock"><i class="fas fa-exclamation-triangle"></i> Deadlock Detected! Cycle: P1 → R1 → P2 → R2 → P3 → R1</div>`;
+                    executionSteps.textContent = 'Deadlock detected! A circular wait condition exists in the system.';
+                } else {
+                    deadlockStatus.innerHTML = `<div class="status-safe"><i class="fas fa-check-circle"></i> No Deadlock Detected</div>`;
+                    executionSteps.textContent = 'No deadlock detected. The system is in a safe state.';
+                }
+                
+                // Re-render graph to highlight deadlock cycle
+                renderGraph();
+            }
+            
+            // Initialize Banker's Algorithm data
+            function initializeBankersAlgorithm() {
+                // Sample data for Banker's Algorithm
+                allocation = [
+                    [0, 1, 0],
+                    [2, 0, 0],
+                    [3, 0, 2],
+                    [2, 1, 1],
+                    [0, 0, 2]
+                ];
+                
+                max = [
+                    [7, 5, 3],
+                    [3, 2, 2],
+                    [9, 0, 2],
+                    [2, 2, 2],
+                    [4, 3, 3]
+                ];
+                
+                // Calculate need matrix
+                need = [];
+                for (let i = 0; i < allocation.length; i++) {
+                    need[i] = [];
+                    for (let j = 0; j < allocation[i].length; j++) {
+                        need[i][j] = max[i][j] - allocation[i][j];
+                    }
+                }
+                
+                // Set available resources
+                available = [3, 3, 2];
+                availableResourcesInput.value = available.join(',');
+                
+                // Update the allocation table
+                updateAllocationTable();
+            }
+            
+            // Update the allocation table
+            function updateAllocationTable() {
+                allocationTable.innerHTML = '';
+                
+                for (let i = 0; i < allocation.length; i++) {
+                    const row = document.createElement('tr');
+                    
+                    // Process column
+                    const processCell = document.createElement('td');
+                    processCell.textContent = `P${i}`;
+                    row.appendChild(processCell);
+                    
+                    // Allocation column
+                    const allocationCell = document.createElement('td');
+                    allocationCell.textContent = `[${allocation[i].join(', ')}]`;
+                    row.appendChild(allocationCell);
+                    
+                    // Max column
+                    const maxCell = document.createElement('td');
+                    maxCell.textContent = `[${max[i].join(', ')}]`;
+                    row.appendChild(maxCell);
+                    
+                    // Need column
+                    const needCell = document.createElement('td');
+                    needCell.textContent = `[${need[i].join(', ')}]`;
+                    row.appendChild(needCell);
+                    
+                    allocationTable.appendChild(row);
+                }
+            }
+            
+            // Check if the system is in a safe state using Banker's Algorithm
+            function checkSafety() {
+                const availableResources = availableResourcesInput.value.split(',').map(Number);
+                const work = [...availableResources];
+                const finish = new Array(allocation.length).fill(false);
+                const safeSequence = [];
+                let found;
+                
+                executionSteps.textContent = 'Starting Banker\'s Algorithm safety check...\n';
+                executionSteps.textContent += `Available resources: [${work.join(', ')}]\n\n`;
+                
+                // Safety algorithm
+                for (let count = 0; count < allocation.length; count++) {
+                    found = false;
+                    
+                    for (let i = 0; i < allocation.length; i++) {
+                        if (!finish[i]) {
+                            let canAllocate = true;
+                            
+                            // Check if need[i] <= work
+                            for (let j = 0; j < work.length; j++) {
+                                if (need[i][j] > work[j]) {
+                                    canAllocate = false;
+                                    break;
+                                }
+                            }
+                            
+                            if (canAllocate) {
+                                // Simulate allocation
+                                executionSteps.textContent += `Process P${i} can be allocated resources. Need: [${need[i].join(', ')}], Work: [${work.join(', ')}]\n`;
+                                
+                                for (let j = 0; j < work.length; j++) {
+                                    work[j] += allocation[i][j];
+                                }
+                                
+                                executionSteps.textContent += `Resources released by P${i}. New work: [${work.join(', ')}]\n`;
+                                
+                                safeSequence.push(`P${i}`);
+                                finish[i] = true;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!found) {
+                        break;
+                    }
+                }
+                
+                // Check if all processes finished
+                if (safeSequence.length === allocation.length) {
+                    safetyStatus.innerHTML = `<div class="status-safe"><i class="fas fa-check-circle"></i> System is in a SAFE state</div>`;
+                    safetySequence.textContent = `Safe sequence: ${safeSequence.join(' → ')}`;
+                    executionSteps.textContent += `\nSystem is in a SAFE state. Safe sequence: ${safeSequence.join(' → ')}`;
+                } else {
+                    safetyStatus.innerHTML = `<div class="status-unsafe"><i class="fas fa-exclamation-triangle"></i> System is in an UNSAFE state</div>`;
+                    safetySequence.textContent = 'No safe sequence exists. System may be in a deadlock state.';
+                    executionSteps.textContent += `\nSystem is in an UNSAFE state. No safe sequence exists.`;
+                }
+            }
+            
+            // Simulate resource allocation
+            function simulateAllocation() {
+                executionSteps.textContent = 'Simulating resource allocation...\n';
+                
+                // For demonstration, we'll simulate a simple allocation
+                const processIndex = Math.floor(Math.random() * allocation.length);
+                const resourceIndex = Math.floor(Math.random() % available.length);
+                const requestAmount = Math.min(need[processIndex][resourceIndex], 2);
+                
+                if (requestAmount > 0) {
+                    executionSteps.textContent += `Process P${processIndex} requests ${requestAmount} units of resource R${resourceIndex + 1}\n`;
+                    
+                    // Check if request can be granted
+                    if (requestAmount <= available[resourceIndex]) {
+                        // Grant the request
+                        allocation[processIndex][resourceIndex] += requestAmount;
+                        need[processIndex][resourceIndex] -= requestAmount;
+                        available[resourceIndex] -= requestAmount;
+                        
+                        executionSteps.textContent += `Request granted. Updated allocation for P${processIndex}: [${allocation[processIndex].join(', ')}]\n`;
+                        executionSteps.textContent += `Updated need for P${processIndex}: [${need[processIndex].join(', ')}]\n`;
+                        executionSteps.textContent += `Updated available resources: [${available.join(', ')}]\n`;
+                        
+                        // Update the table
+                        updateAllocationTable();
+                    } else {
+                        executionSteps.textContent += `Request denied. Not enough available resources.\n`;
+                    }
+                } else {
+                    executionSteps.textContent += `Process P${processIndex} has no need for additional resources.\n`;
+                }
+            }
+            
+            // Terminate a process to recover from deadlock
+            function terminateProcess() {
+                const processToTerminate = document.getElementById('processToTerminate').value;
+                
+                executionSteps.textContent = `Terminating process ${processToTerminate} to recover from deadlock...\n`;
+                
+                // Simulate process termination and resource release
+                const processIndex = parseInt(processToTerminate.substring(1)) - 1;
+                
+                if (processIndex >= 0 && processIndex < allocation.length) {
+                    // Release all resources held by the process
+                    for (let j = 0; j < available.length; j++) {
+                        available[j] += allocation[processIndex][j];
+                        allocation[processIndex][j] = 0;
+                        need[processIndex][j] = max[processIndex][j];
+                    }
+                    
+                    executionSteps.textContent += `Process ${processToTerminate} terminated. Resources released.\n`;
+                    executionSteps.textContent += `Updated available resources: [${available.join(', ')}]\n`;
+                    
+                    // Update the table
+                    updateAllocationTable();
+                    
+                    terminationResult.textContent = `Process ${processToTerminate} has been terminated. All resources held by the process have been released.`;
+                    
+                    // Check if deadlock is resolved
+                    setTimeout(() => {
+                        deadlockStatus.innerHTML = `<div class="status-safe"><i class="fas fa-check-circle"></i> Deadlock Resolved</div>`;
+                        deadlockCycle = [];
+                        renderGraph();
+                    }, 1000);
+                }
+            }
+            
+            // Preempt a resource from a process
+            function preemptResource() {
+                const resourceToPreempt = document.getElementById('resourceToPreempt').value;
+                const processToPreemptFrom = document.getElementById('processToPreemptFrom').value;
+                
+                executionSteps.textContent = `Preempting ${resourceToPreempt} from ${processToPreemptFrom}...\n`;
+                
+                // Simulate resource preemption
+                const resourceIndex = parseInt(resourceToPreempt.substring(1)) - 1;
+                const processIndex = parseInt(processToPreemptFrom.substring(1)) - 1;
+                
+                if (processIndex >= 0 && processIndex < allocation.length && 
+                    resourceIndex >= 0 && resourceIndex < available.length) {
+                    
+                    if (allocation[processIndex][resourceIndex] > 0) {
+                        // Preempt one unit of the resource
+                        allocation[processIndex][resourceIndex]--;
+                        need[processIndex][resourceIndex]++;
+                        available[resourceIndex]++;
+                        
+                        executionSteps.textContent += `Resource ${resourceToPreempt} preempted from ${processToPreemptFrom}.\n`;
+                        executionSteps.textContent += `Updated allocation for ${processToPreemptFrom}: [${allocation[processIndex].join(', ')}]\n`;
+                        executionSteps.textContent += `Updated available resources: [${available.join(', ')}]\n`;
+                        
+                        // Update the table
+                        updateAllocationTable();
+                        
+                        preemptionResult.textContent = `Resource ${resourceToPreempt} has been preempted from ${processToPreemptFrom}. The process will be rolled back to a previous safe state.`;
+                        
+                        // Check if deadlock is resolved
+                        setTimeout(() => {
+                            deadlockStatus.innerHTML = `<div class="status-safe"><i class="fas fa-check-circle"></i> Deadlock Resolved</div>`;
+                            deadlockCycle = [];
+                            renderGraph();
+                        }, 1000);
+                    } else {
+                        preemptionResult.textContent = `Process ${processToPreemptFrom} does not hold any units of ${resourceToPreempt}.`;
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

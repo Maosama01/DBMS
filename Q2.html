@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Models & DBMS Architecture Explorer</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc; /* Light background */
+        }
+        /* Custom styles for the animated flow */
+        .flow-line {
+            stroke: currentColor;
+            stroke-width: 4;
+            fill: none;
+            stroke-dasharray: 20 10; /* Dashed line for animation */
+            animation: flow 2s linear infinite;
+        }
+
+        @keyframes flow {
+            to {
+                stroke-dashoffset: -30;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        // Set up Tailwind configuration for custom colors/theme if needed (using default for simplicity)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4c51bf', // Indigo
+                        secondary: '#2b6cb0', // Blue
+                        accent: '#dd6b20', // Orange
+                    }
+                }
+            }
+        }
+        
+        // Function to toggle architecture visibility and highlight the active button
+        function showArchitecture(type) {
+            const centralized = document.getElementById('centralized-arch');
+            const clientServer = document.getElementById('client-server-arch');
+            const btnCentralized = document.getElementById('btn-centralized');
+            const btnClientServer = document.getElementById('btn-client-server');
+
+            if (type === 'centralized') {
+                centralized.classList.remove('hidden');
+                clientServer.classList.add('hidden');
+                btnCentralized.classList.add('bg-primary', 'text-white');
+                btnCentralized.classList.remove('bg-white', 'text-primary');
+                btnClientServer.classList.remove('bg-primary', 'text-white');
+                btnClientServer.classList.add('bg-white', 'text-primary');
+            } else {
+                centralized.classList.add('hidden');
+                clientServer.classList.remove('hidden');
+                btnClientServer.classList.add('bg-primary', 'text-white');
+                btnClientServer.classList.remove('bg-white', 'text-primary');
+                btnCentralized.classList.remove('bg-primary', 'text-white');
+                btnCentralized.classList.add('bg-white', 'text-primary');
+            }
+        }
+
+        // Initialize with Centralized view on load
+        window.onload = () => {
+             // Set log level for firestore (not strictly needed here but good practice if using firebase)
+            // console.log("Initializing architecture explorer.");
+            showArchitecture('centralized'); 
+        };
+    </script>
+
+    <!-- Main Content Container -->
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="text-center py-10 bg-white shadow-lg rounded-xl mb-12">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
+               Q2.  Data Models & DBMS  Architecture Explorer
+            </h1>
+            <p class="mt-4 text-lg text-gray-500">
+                Understanding the foundation of database management systems.
+            </p>
+        </header>
+
+        <!-- Section 1: Data Models -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-primary pb-2">1. Core Data Models</h2>
+            <p class="text-gray-600 mb-8">Data models define how data is connected and processed. Click on a model to explore its structure and example.</p>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <!-- Relational Model Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-secondary">
+                    <h3 class="text-xl font-semibold text-secondary mb-3">Relational Model (SQL)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Data is organized into two-dimensional tables (relations) with rows (tuples) and columns (attributes). Based on set theory.</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-xs font-mono border border-gray-200">
+                        <span class="font-bold text-gray-800">Example: Student Table</span><br>
+                        | ID | Name | Course_ID |<br>
+                        | 1 | Alice | C101 |<br>
+                        | 2 | Bob | C102 |
+                    </div>
+                </div>
+
+                <!-- Hierarchical Model Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-indigo-500">
+                    <h3 class="text-xl font-semibold text-indigo-500 mb-3">Hierarchical Model</h3>
+                    <p class="text-sm text-gray-600 mb-4">Data is organized in a tree-like structure. A parent record can have multiple child records (1:N relationship), but a child can have only one parent.</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-xs font-mono border border-gray-200">
+                        <span class="font-bold text-gray-800">Example: Department Structure</span><br>
+                        (Root) Company <br>
+                        &nbsp;&nbsp;&nbsp;L- Department A (Parent)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L- Team 1 (Child)<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;L- Team 2 (Child)
+                    </div>
+                </div>
+
+                <!-- Network Model Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-teal-500">
+                    <h3 class="text-xl font-semibold text-teal-500 mb-3">Network Model</h3>
+                    <p class="text-sm text-gray-600 mb-4">An extension of the Hierarchical model, allowing many-to-many relationships (N:M). Records are linked using pointers.</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-xs font-mono border border-gray-200">
+                        <span class="font-bold text-gray-800">Example: Students and Courses</span><br>
+                        Student A --(enrolled in)--> Course X<br>
+                        Student B --(enrolled in)--> Course X<br>
+                        Student B --(enrolled in)--> Course Y
+                    </div>
+                </div>
+
+                <!-- Document Model Card -->
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300 border-t-4 border-accent">
+                    <h3 class="text-xl font-semibold text-accent mb-3">Document Model (NoSQL)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Stores data in flexible, semi-structured document formats (like JSON or BSON). Ideal for rapid iteration and complex nested data.</p>
+                    <div class="bg-gray-50 p-3 rounded-lg text-xs font-mono border border-gray-200">
+                        <span class="font-bold text-gray-800">Example: Product Document</span><br>
+                        {<br>
+                        &nbsp;&nbsp;"product_id": 42,<br>
+                        &nbsp;&nbsp;"specs": { "color": "blue", "weight": "2kg" },<br>
+                        &nbsp;&nbsp;"tags": ["electronics", "gadget"]<br>
+                        }
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: DBMS Architecture Comparison -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-primary pb-2">2. DBMS Architecture Comparison</h2>
+            
+            <!-- Architecture Toggle Buttons -->
+            <div class="flex space-x-4 mb-8 justify-center">
+                <button id="btn-centralized" onclick="showArchitecture('centralized')" class="px-6 py-3 text-lg font-medium rounded-lg shadow-md transition duration-200 border border-primary text-primary bg-white hover:bg-primary hover:text-white">
+                    Centralized Architecture
+                </button>
+                <button id="btn-client-server" onclick="showArchitecture('client-server')" class="px-6 py-3 text-lg font-medium rounded-lg shadow-md transition duration-200 border border-primary text-primary bg-white hover:bg-primary hover:text-white">
+                    Client–Server Architecture
+                </button>
+            </div>
+
+            <!-- Architecture Container (Visual) -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 min-h-[400px]">
+                
+                <!-- Centralized Architecture Diagram -->
+                <div id="centralized-arch" class="w-full text-center text-gray-700 p-4 transition-opacity duration-500">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Centralized Architecture (One-Tier)</h3>
+                    <p class="text-sm text-gray-500 mb-6">All database and application processing occur on a single, powerful machine (often a mainframe).</p>
+                    
+                    <svg viewBox="0 0 800 350" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        
+                        <!-- Mainframe / Central Server -->
+                        <rect x="250" y="100" width="300" height="150" rx="15" class="fill-primary/20 stroke-primary stroke-2" />
+                        <text x="270" y="170" class="text-xl font-bold fill-gray-800">Mainframe / Central Server</text>
+                        <text x="325" y="190" class="text-sm fill-gray-600">(App Logic + Database)</text>
+
+                        <!-- Terminals (Top) -->
+                        <rect x="100" y="20" width="80" height="50" rx="8" class="fill-indigo-400/50 stroke-indigo-600" />
+                        <text x="110" y="49" class="text-xs fill-gray-800">Terminal A</text>
+                        <rect x="620" y="20" width="80" height="50" rx="8" class="fill-indigo-400/50 stroke-indigo-600" />
+                        <text x="630" y="49" class="text-xs fill-gray-800">Terminal B</text>
+
+                        <!-- Terminals (Bottom) -->
+                        <rect x="100" y="280" width="80" height="50" rx="8" class="fill-indigo-400/50 stroke-indigo-600" />
+                        <text x="110" y="309" class="text-xs fill-gray-800">Terminal C</text>
+                        <rect x="620" y="280" width="80" height="50" rx="8" class="fill-indigo-400/50 stroke-indigo-600" />
+                        <text x="630" y="309" class="text-xs fill-gray-800">Terminal D</text>
+
+                        <!-- Flow Lines -->
+                        <path d="M180 45 L250 150" class="flow-line text-indigo-600/70" />
+                        <path d="M620 45 L550 150" class="flow-line text-indigo-600/70" />
+                        <path d="M180 305 L250 200" class="flow-line text-indigo-600/70" />
+                        <path d="M620 305 L550 200" class="flow-line text-indigo-600/70" />
+
+                        <!-- Key Advantage/Disadvantage (Reduced font size to text-xs) -->
+                        <text x="270" y="330" class="text-xs font-semibold fill-gray-800">Key: High cost, high security, low scalability.</text>
+                    </svg>
+                </div>
+
+                <!-- Client–Server Architecture Diagram -->
+                <div id="client-server-arch" class="w-full text-center text-gray-700 p-4 transition-opacity duration-500 hidden">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Client–Server Architecture (Two-Tier)</h3>
+                    <p class="text-sm text-gray-500 mb-6">Separates the presentation/application logic (Client) from the data management (Server).</p>
+                    
+                    <svg viewBox="0 0 800 350" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                        
+                        <!-- Server (Database) -->
+                        <rect x="500" y="100" width="200" height="150" rx="15" class="fill-secondary/20 stroke-secondary stroke-2" />
+                        <text x="520" y="150" class="text-xl font-bold fill-gray-800">Database Server</text>
+                        <text x="500" y="180" class="text-sm fill-gray-600">(Data Storage & Query Engine)</text>
+
+                        <!-- Clients -->
+                        <rect x="100" y="100" width="150" height="50" rx="8" class="fill-teal-400/50 stroke-teal-600" />
+                        <text x="115" y="130" class="text-sm fill-gray-800">Client A (Request)</text>
+                        <rect x="100" y="200" width="150" height="50" rx="8" class="fill-teal-400/50 stroke-teal-600" />
+                        <text x="115" y="230" class="text-sm fill-gray-800">Client B (Request)</text>
+
+                        <!-- Flow Lines (Request) -->
+                        <path d="M250 125 H500" class="flow-line text-teal-600/80" stroke-dasharray="15 5" />
+                        <path d="M250 225 H500" class="flow-line text-teal-600/80" stroke-dasharray="15 5" />
+                        <text x="335" y="115" class="text-xs fill-gray-600 font-semibold">SQL Request</text>
+
+                        <!-- Flow Lines (Response) - Reversed animation direction via CSS class might be needed, but a simple line is fine for clarity -->
+                        <path d="M500 135 H250" class="flow-line text-accent/80" stroke-dasharray="15 5" style="animation-direction: reverse;" />
+                        <path d="M500 235 H250" class="flow-line text-accent/80" stroke-dasharray="15 5" style="animation-direction: reverse;" />
+                        <text x="335" y="255" class="text-xs fill-gray-600 font-semibold">Data Response</text>
+
+                        <!-- Key Advantage/Disadvantage (Reduced font size to text-xs) -->
+                        <text x="210" y="330" class="text-xs font-semibold fill-gray-800">Key: Distributed processing, better scalability, high traffic.</text>
+                    </svg>
+                </div>
+
+            </div>
+        </section>
+
+        <footer class="text-center py-6 mt-12 text-sm text-gray-500 border-t border-gray-200">
+            <p>&copy; DBMS practical project by Tanishq & Garima  </p>
+        </footer>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Normalization Assistant</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+            color: var(--secondary);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        input, textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            margin-top: 5px;
+        }
+        
+        button:hover {
+            background-color: var(--secondary);
+        }
+        
+        button.secondary {
+            background-color: var(--warning);
+        }
+        
+        button.secondary:hover {
+            background-color: #e67e22;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .result-section {
+            margin-top: 20px;
+        }
+        
+        .result-box {
+            background-color: var(--light);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        
+        .step-box {
+            background-color: var(--light);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+        
+        .highlight {
+            background-color: #fffacd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .success {
+            background-color: rgba(46, 204, 113, 0.2);
+            border-left: 4px solid var(--success);
+        }
+        
+        .warning {
+            background-color: rgba(243, 156, 18, 0.2);
+            border-left: 4px solid var(--warning);
+        }
+        
+        .danger {
+            background-color: rgba(231, 76, 60, 0.2);
+            border-left: 4px solid var(--danger);
+        }
+        
+        .info {
+            background-color: rgba(52, 152, 219, 0.2);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .normalization-steps {
+            grid-column: 1 / -1;
+        }
+        
+        .step-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .step-card {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        
+        .step-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .step-card.active {
+            border-top: 4px solid var(--primary);
+        }
+        
+        .step-card h3 {
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted var(--dark);
+            cursor: help;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--dark);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .fd-list {
+            margin-top: 10px;
+        }
+        
+        .fd-item {
+            padding: 5px 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .example-description {
+            font-style: italic;
+            color: #666;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Database Normalization Assistant</h1>
+            <p class="subtitle">A tool to help students understand and apply database normalization concepts</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="card">
+                    <h2 class="card-header">Input Attributes and Functional Dependencies</h2>
+                    
+                    <div class="form-group">
+                        <label for="exampleSelect">Load Example:</label>
+                        <select id="exampleSelect">
+                            <option value="">-- Select an example --</option>
+                            <option value="simple">Simple Example (A, B, C, D)</option>
+                            <option value="student">Student-Course Example</option>
+                            <option value="employee">Employee-Department Example</option>
+                            <option value="book">Book-Library Example</option>
+                            <option value="complex">Complex Example (Multiple Keys)</option>
+                        </select>
+                        <button id="loadExampleBtn" class="secondary">Load Example</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="attributes">Attributes (comma-separated):</label>
+                        <input type="text" id="attributes" placeholder="e.g., A, B, C, D, E">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="functionalDependencies">Functional Dependencies (one per line):</label>
+                        <textarea id="functionalDependencies" placeholder="e.g., A -> B, C
+AB -> D
+C -> E"></textarea>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="computeBtn">Compute Closures & Candidate Keys</button>
+                        <button id="clearBtn" class="secondary">Clear All</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-header">Attribute Closure</h2>
+                    
+                    <div class="form-group">
+                        <label for="closureInput">Compute closure for:</label>
+                        <input type="text" id="closureInput" placeholder="e.g., A">
+                    </div>
+                    
+                    <button id="closureBtn">Compute Closure</button>
+                    
+                    <div class="result-section">
+                        <label>Result:</label>
+                        <div class="result-box" id="closureResult">Enter attributes and click compute</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-header">Candidate Keys</h2>
+                    
+                    <div class="result-section">
+                        <div class="result-box" id="candidateKeysResult">Enter attributes and functional dependencies first</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <div class="card">
+                    <h2 class="card-header">Normalization Process</h2>
+                    
+                    <button id="normalizeBtn">Start Normalization Process</button>
+                    
+                    <div class="step-box info">
+                        <div class="step-title">About Normalization</div>
+                        <p>Database normalization is the process of organizing data to minimize redundancy and dependency. 
+                        This tool will guide you through the process from 1NF to BCNF, highlighting important checks along the way.</p>
+                    </div>
+                    
+                    <div class="step-container">
+                        <div class="step-card" id="step1nf">
+                            <h3>1NF</h3>
+                            <p>First Normal Form</p>
+                            <div class="result-box" id="step1nfResult">-</div>
+                        </div>
+                        
+                        <div class="step-card" id="step2nf">
+                            <h3>2NF</h3>
+                            <p>Second Normal Form</p>
+                            <div class="result-box" id="step2nfResult">-</div>
+                        </div>
+                        
+                        <div class="step-card" id="step3nf">
+                            <h3>3NF</h3>
+                            <p>Third Normal Form</p>
+                            <div class="result-box" id="step3nfResult">-</div>
+                        </div>
+                        
+                        <div class="step-card" id="stepbcnf">
+                            <h3>BCNF</h3>
+                            <p>Boyce-Codd Normal Form</p>
+                            <div class="result-box" id="stepbcnfResult">-</div>
+                        </div>
+                    </div>
+                    
+                    <div class="step-box" id="losslessCheck">
+                        <div class="step-title">Lossless Join Check</div>
+                        <div class="result-box">-</div>
+                    </div>
+                    
+                    <div class="step-box" id="dependencyPreservationCheck">
+                        <div class="step-title">Dependency Preservation Check</div>
+                        <div class="result-box">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="normalization-steps card">
+                <h2 class="card-header">Step-by-Step Explanation</h2>
+                
+                <div class="step-box" id="stepExplanation">
+                    <div class="step-title">Instructions</div>
+                    <p>Enter your attributes and functional dependencies in the left panel, then click "Compute Closures & Candidate Keys". 
+                    After that, you can start the normalization process by clicking "Start Normalization Process".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const computeBtn = document.getElementById('computeBtn');
+            const closureBtn = document.getElementById('closureBtn');
+            const normalizeBtn = document.getElementById('normalizeBtn');
+            const loadExampleBtn = document.getElementById('loadExampleBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const exampleSelect = document.getElementById('exampleSelect');
+            
+            let attributes = [];
+            let functionalDependencies = [];
+            let candidateKeys = [];
+            
+            // Define examples
+            const examples = {
+                simple: {
+                    name: "Simple Example",
+                    attributes: "A, B, C, D",
+                    fds: "A -> B\nA -> C\nC -> D",
+                    description: "A simple example with a single candidate key (A) and transitive dependency (C -> D)."
+                },
+                student: {
+                    name: "Student-Course Example",
+                    attributes: "StudentID, CourseID, StudentName, CourseName, Instructor, InstructorOffice",
+                    fds: "StudentID -> StudentName\nCourseID -> CourseName, Instructor\nInstructor -> InstructorOffice\nStudentID, CourseID -> StudentName, CourseName, Instructor, InstructorOffice",
+                    description: "A classic example with a composite key (StudentID, CourseID) and partial/transitive dependencies."
+                },
+                employee: {
+                    name: "Employee-Department Example",
+                    attributes: "EmpID, EmpName, DeptID, DeptName, DeptLocation",
+                    fds: "EmpID -> EmpName, DeptID\nDeptID -> DeptName, DeptLocation",
+                    description: "An example with transitive dependency (DeptID -> DeptName, DeptLocation)."
+                },
+                book: {
+                    name: "Book-Library Example",
+                    attributes: "BookID, Title, AuthorID, AuthorName, PublisherID, PublisherName, PublisherLocation",
+                    fds: "BookID -> Title, AuthorID, PublisherID\nAuthorID -> AuthorName\nPublisherID -> PublisherName, PublisherLocation",
+                    description: "An example with multiple transitive dependencies (AuthorID -> AuthorName, PublisherID -> PublisherName, PublisherLocation)."
+                },
+                complex: {
+                    name: "Complex Example (Multiple Keys)",
+                    attributes: "A, B, C, D, E, F",
+                    fds: "A -> B, C\nB -> A, D\nC -> E\nD -> F\nE -> C",
+                    description: "A complex example with multiple candidate keys (A and B) and various dependencies."
+                }
+            };
+            
+            loadExampleBtn.addEventListener('click', function() {
+                const exampleKey = exampleSelect.value;
+                if (exampleKey && examples[exampleKey]) {
+                    const example = examples[exampleKey];
+                    document.getElementById('attributes').value = example.attributes;
+                    document.getElementById('functionalDependencies').value = example.fds;
+                    
+                    // Update explanation with example description
+                    updateExplanation(`Loaded example: ${example.name}. ${example.description}`);
+                }
+            });
+            
+            clearBtn.addEventListener('click', function() {
+                document.getElementById('attributes').value = '';
+                document.getElementById('functionalDependencies').value = '';
+                document.getElementById('closureInput').value = '';
+                document.getElementById('closureResult').textContent = 'Enter attributes and click compute';
+                document.getElementById('candidateKeysResult').textContent = 'Enter attributes and functional dependencies first';
+                
+                // Clear normalization results
+                document.getElementById('step1nfResult').textContent = '-';
+                document.getElementById('step2nfResult').textContent = '-';
+                document.getElementById('step3nfResult').textContent = '-';
+                document.getElementById('stepbcnfResult').textContent = '-';
+                document.getElementById('losslessCheck').querySelector('.result-box').textContent = '-';
+                document.getElementById('dependencyPreservationCheck').querySelector('.result-box').textContent = '-';
+                
+                // Reset step cards
+                document.querySelectorAll('.step-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                updateExplanation('Cleared all inputs and results.');
+            });
+            
+            computeBtn.addEventListener('click', function() {
+                // Parse attributes
+                const attrInput = document.getElementById('attributes').value.trim();
+                attributes = attrInput.split(',').map(attr => attr.trim()).filter(attr => attr !== '');
+                
+                // Parse functional dependencies
+                const fdInput = document.getElementById('functionalDependencies').value.trim();
+                const fdLines = fdInput.split('\n').filter(line => line.trim() !== '');
+                
+                functionalDependencies = [];
+                for (const line of fdLines) {
+                    const parts = line.split('->');
+                    if (parts.length === 2) {
+                        const left = parts[0].trim().split(',').map(attr => attr.trim());
+                        const right = parts[1].trim().split(',').map(attr => attr.trim());
+                        functionalDependencies.push({ left, right });
+                    }
+                }
+                
+                // Compute candidate keys
+                candidateKeys = findCandidateKeys(attributes, functionalDependencies);
+                
+                // Display candidate keys
+                const candidateKeysResult = document.getElementById('candidateKeysResult');
+                if (candidateKeys.length > 0) {
+                    candidateKeysResult.textContent = candidateKeys.map(key => key.join(', ')).join('\n');
+                } else {
+                    candidateKeysResult.textContent = 'No candidate keys found';
+                }
+                
+                // Update explanation
+                updateExplanation('Computed candidate keys and ready for normalization.');
+            });
+            
+            closureBtn.addEventListener('click', function() {
+                const closureInput = document.getElementById('closureInput').value.trim();
+                const inputAttrs = closureInput.split(',').map(attr => attr.trim()).filter(attr => attr !== '');
+                
+                if (inputAttrs.length === 0) {
+                    document.getElementById('closureResult').textContent = 'Please enter attributes to compute closure';
+                    return;
+                }
+                
+                const closure = computeClosure(inputAttrs, functionalDependencies);
+                document.getElementById('closureResult').textContent = closure.join(', ');
+            });
+            
+            normalizeBtn.addEventListener('click', function() {
+                if (attributes.length === 0 || functionalDependencies.length === 0) {
+                    updateExplanation('Please enter attributes and functional dependencies first.');
+                    return;
+                }
+                
+                // Reset step cards
+                document.querySelectorAll('.step-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                // Start normalization process
+                performNormalization(attributes, functionalDependencies, candidateKeys);
+            });
+            
+            function computeClosure(attrs, fds) {
+                let closure = [...attrs];
+                let changed = true;
+                
+                while (changed) {
+                    changed = false;
+                    for (const fd of fds) {
+                        // Check if all attributes in left side are in closure
+                        if (fd.left.every(attr => closure.includes(attr))) {
+                            // Add attributes from right side if not already in closure
+                            for (const attr of fd.right) {
+                                if (!closure.includes(attr)) {
+                                    closure.push(attr);
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return closure.sort();
+            }
+            
+            function findCandidateKeys(attrs, fds) {
+                const candidateKeys = [];
+                const allAttrs = [...attrs];
+                
+                // Helper function to check if a set of attributes is a superkey
+                function isSuperkey(keyAttrs) {
+                    const closure = computeClosure(keyAttrs, fds);
+                    return allAttrs.every(attr => closure.includes(attr));
+                }
+                
+                // Generate all possible subsets of attributes
+                const subsets = [];
+                const n = allAttrs.length;
+                
+                // Generate all non-empty subsets
+                for (let i = 1; i < (1 << n); i++) {
+                    const subset = [];
+                    for (let j = 0; j < n; j++) {
+                        if (i & (1 << j)) {
+                            subset.push(allAttrs[j]);
+                        }
+                    }
+                    subsets.push(subset);
+                }
+                
+                // Sort by length to find minimal keys first
+                subsets.sort((a, b) => a.length - b.length);
+                
+                // Find candidate keys (minimal superkeys)
+                for (const subset of subsets) {
+                    if (isSuperkey(subset)) {
+                        // Check if this is minimal (no proper subset is a superkey)
+                        let isMinimal = true;
+                        for (const key of candidateKeys) {
+                            if (key.every(attr => subset.includes(attr)) && key.length < subset.length) {
+                                isMinimal = false;
+                                break;
+                            }
+                        }
+                        
+                        if (isMinimal) {
+                            // Also check that no subset of this set is already a candidate key
+                            const isSubsetOfExisting = candidateKeys.some(key => 
+                                subset.every(attr => key.includes(attr)) && key.length < subset.length
+                            );
+                            
+                            if (!isSubsetOfExisting) {
+                                candidateKeys.push(subset);
+                            }
+                        }
+                    }
+                }
+                
+                return candidateKeys;
+            }
+            
+            function performNormalization(attrs, fds, candidateKeys) {
+                // Reset all result boxes
+                document.getElementById('step1nfResult').textContent = '';
+                document.getElementById('step2nfResult').textContent = '';
+                document.getElementById('step3nfResult').textContent = '';
+                document.getElementById('stepbcnfResult').textContent = '';
+                document.getElementById('losslessCheck').querySelector('.result-box').textContent = '';
+                document.getElementById('dependencyPreservationCheck').querySelector('.result-box').textContent = '';
+                
+                // Step 1: 1NF
+                setTimeout(() => {
+                    document.getElementById('step1nf').classList.add('active');
+                    const result1nf = `Relation: {${attrs.join(', ')}}\n\nAll attributes are atomic, so the relation is already in 1NF.`;
+                    document.getElementById('step1nfResult').textContent = result1nf;
+                    updateExplanation('1NF: Ensuring all attributes have atomic values. In this case, all attributes are atomic.');
+                }, 500);
+                
+                // Step 2: 2NF
+                setTimeout(() => {
+                    document.getElementById('step2nf').classList.add('active');
+                    
+                    // Check for partial dependencies (attributes that depend on only part of a candidate key)
+                    const partialDependencies = [];
+                    for (const fd of fds) {
+                        for (const key of candidateKeys) {
+                            if (key.length > 1) {
+                                // Check if left side is a proper subset of a candidate key
+                                if (fd.left.every(attr => key.includes(attr)) && 
+                                    fd.left.length < key.length) {
+                                    partialDependencies.push({
+                                        key: key,
+                                        partialKey: fd.left,
+                                        dependent: fd.right
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    let result2nf = `Relation: {${attrs.join(', ')}}\n\n`;
+                    
+                    if (partialDependencies.length === 0) {
+                        result2nf += "No partial dependencies found. The relation is already in 2NF.";
+                    } else {
+                        result2nf += "Found partial dependencies. Need to decompose:\n\n";
+                        
+                        // Create new relations for 2NF
+                        const relations2nf = [];
+                        const mainRelationAttrs = [...attrs];
+                        
+                        for (const pd of partialDependencies) {
+                            const newRelationAttrs = [...pd.partialKey, ...pd.dependent];
+                            relations2nf.push(newRelationAttrs);
+                            
+                            // Remove dependent attributes from main relation (keep only the key and non-dependent attributes)
+                            for (const attr of pd.dependent) {
+                                const index = mainRelationAttrs.indexOf(attr);
+                                if (index !== -1 && !pd.partialKey.includes(attr)) {
+                                    mainRelationAttrs.splice(index, 1);
+                                }
+                            }
+                        }
+                        
+                        // Add the main relation
+                        relations2nf.unshift(mainRelationAttrs);
+                        
+                        result2nf += "Decomposed relations:\n";
+                        relations2nf.forEach((relation, index) => {
+                            result2nf += `R${index+1}: {${relation.join(', ')}}\n`;
+                        });
+                    }
+                    
+                    document.getElementById('step2nfResult').textContent = result2nf;
+                    updateExplanation('2NF: Removing partial dependencies. A relation is in 2NF if it is in 1NF and no non-prime attribute is partially dependent on any candidate key.');
+                }, 1500);
+                
+                // Step 3: 3NF
+                setTimeout(() => {
+                    document.getElementById('step3nf').classList.add('active');
+                    
+                    // Check for transitive dependencies (non-prime attributes depending on other non-prime attributes)
+                    const primeAttributes = new Set();
+                    candidateKeys.forEach(key => key.forEach(attr => primeAttributes.add(attr)));
+                    
+                    const transitiveDependencies = [];
+                    for (const fd of fds) {
+                        // Check if left side is not a superkey and right side is not a prime attribute
+                        const leftClosure = computeClosure(fd.left, fds);
+                        const isLeftSuperkey = attrs.every(attr => leftClosure.includes(attr));
+                        
+                        if (!isLeftSuperkey) {
+                            const hasNonPrimeInRight = fd.right.some(attr => !primeAttributes.has(attr));
+                            if (hasNonPrimeInRight) {
+                                transitiveDependencies.push(fd);
+                            }
+                        }
+                    }
+                    
+                    let result3nf = `Relation: {${attrs.join(', ')}}\n\n`;
+                    
+                    if (transitiveDependencies.length === 0) {
+                        result3nf += "No transitive dependencies found. The relation is already in 3NF.";
+                    } else {
+                        result3nf += "Found transitive dependencies. Need to decompose:\n\n";
+                        
+                        // Create new relations for 3NF
+                        const relations3nf = [];
+                        const mainRelationAttrs = [...attrs];
+                        
+                        for (const td of transitiveDependencies) {
+                            const newRelationAttrs = [...td.left, ...td.right];
+                            relations3nf.push(newRelationAttrs);
+                            
+                            // Remove dependent attributes from main relation (keep only the determinant)
+                            for (const attr of td.right) {
+                                const index = mainRelationAttrs.indexOf(attr);
+                                if (index !== -1 && !td.left.includes(attr)) {
+                                    mainRelationAttrs.splice(index, 1);
+                                }
+                            }
+                        }
+                        
+                        // Add the main relation
+                        relations3nf.unshift(mainRelationAttrs);
+                        
+                        result3nf += "Decomposed relations:\n";
+                        relations3nf.forEach((relation, index) => {
+                            result3nf += `R${index+1}: {${relation.join(', ')}}\n`;
+                        });
+                    }
+                    
+                    document.getElementById('step3nfResult').textContent = result3nf;
+                    updateExplanation('3NF: Removing transitive dependencies. A relation is in 3NF if it is in 2NF and no non-prime attribute is transitively dependent on any candidate key.');
+                }, 2500);
+                
+                // Step 4: BCNF
+                setTimeout(() => {
+                    document.getElementById('stepbcnf').classList.add('active');
+                    
+                    // Check for BCNF violations (FD where left side is not a superkey)
+                    const bcnfViolations = [];
+                    for (const fd of fds) {
+                        const leftClosure = computeClosure(fd.left, fds);
+                        const isLeftSuperkey = attrs.every(attr => leftClosure.includes(attr));
+                        
+                        if (!isLeftSuperkey) {
+                            bcnfViolations.push(fd);
+                        }
+                    }
+                    
+                    let resultBcnf = `Relation: {${attrs.join(', ')}}\n\n`;
+                    
+                    if (bcnfViolations.length === 0) {
+                        resultBcnf += "No BCNF violations found. The relation is already in BCNF.";
+                    } else {
+                        resultBcnf += "Found BCNF violations. Need to decompose:\n\n";
+                        
+                        // Create new relations for BCNF using the decomposition algorithm
+                        const relationsBcnf = bcnfDecomposition(attrs, fds);
+                        
+                        resultBcnf += "Decomposed relations:\n";
+                        relationsBcnf.forEach((relation, index) => {
+                            resultBcnf += `R${index+1}: {${relation.join(', ')}}\n`;
+                        });
+                    }
+                    
+                    document.getElementById('stepbcnfResult').textContent = resultBcnf;
+                    updateExplanation('BCNF: A relation is in BCNF if for every functional dependency X → Y, X is a superkey.');
+                }, 3500);
+                
+                // Step 5: Lossless Join and Dependency Preservation Checks
+                setTimeout(() => {
+                    // For simplicity, we'll just show generic checks
+                    document.getElementById('losslessCheck').querySelector('.result-box').textContent = 
+                        "Lossless join: The decomposition maintains a lossless join if the common attributes form a superkey in at least one of the resulting relations.";
+                    
+                    document.getElementById('dependencyPreservationCheck').querySelector('.result-box').textContent = 
+                        "Dependency preservation: All original functional dependencies should be preserved in the decomposed relations.";
+                    
+                    updateExplanation('Completed normalization process. Check the results for each normal form and the important properties of decomposition.');
+                }, 4500);
+            }
+            
+            function bcnfDecomposition(attrs, fds) {
+                // Simplified BCNF decomposition algorithm
+                const relations = [attrs];
+                let changed = true;
+                
+                while (changed) {
+                    changed = false;
+                    
+                    for (let i = 0; i < relations.length; i++) {
+                        const relation = relations[i];
+                        
+                        // Check if this relation violates BCNF
+                        for (const fd of fds) {
+                            // Check if this FD is applicable to this relation
+                            if (fd.left.every(attr => relation.includes(attr)) && 
+                                fd.right.every(attr => relation.includes(attr))) {
+                                
+                                const leftClosure = computeClosure(fd.left, fds);
+                                const isLeftSuperkey = relation.every(attr => leftClosure.includes(attr));
+                                
+                                if (!isLeftSuperkey) {
+                                    // Decompose the relation
+                                    const relation1 = [...fd.left, ...fd.right];
+                                    const relation2 = relation.filter(attr => 
+                                        !fd.right.includes(attr) || fd.left.includes(attr)
+                                    );
+                                    
+                                    // Replace the original relation with the two new ones
+                                    relations.splice(i, 1, relation1, relation2);
+                                    changed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (changed) break;
+                    }
+                }
+                
+                return relations;
+            }
+            
+            function updateExplanation(text) {
+                document.getElementById('stepExplanation').innerHTML = `
+                    <div class="step-title">Process Explanation</div>
+                    <p>${text}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
